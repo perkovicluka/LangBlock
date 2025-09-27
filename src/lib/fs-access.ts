@@ -49,14 +49,30 @@ export async function entryExists(dir: DirHandle, path: string) {
   }
 }
 
-export async function ensurePermission(handle: any, mode: "read" | "readwrite" = "readwrite") {
+type PermissibleHandle = {
+  queryPermission?: (opts: { mode: "read" | "readwrite" }) => Promise<PermissionState> | PermissionState;
+  requestPermission?: (opts: { mode: "read" | "readwrite" }) => Promise<PermissionState> | PermissionState;
+};
+
+export async function ensurePermission(
+  handle: unknown,
+  mode: "read" | "readwrite" = "readwrite"
+) {
   try {
+    const h = handle as PermissibleHandle;
     const opts = { mode } as const;
-    if (await handle.queryPermission?.(opts) === "granted") return true;
-    return (await handle.requestPermission?.(opts)) === "granted";
+    if (typeof h?.queryPermission === "function") {
+      const q = await h.queryPermission(opts);
+      if (q === "granted") return true;
+    }
+    if (typeof h?.requestPermission === "function") {
+      const r = await h.requestPermission(opts);
+      return r === "granted";
+    }
+    // No permission API available
+    return true;
   } catch {
     // if the environment doesn't support permission queries, assume allowed after picker
     return true;
   }
 }
-

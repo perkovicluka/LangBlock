@@ -28,18 +28,6 @@ async function writeTextFile(dir: DirHandle, path: string, content: string) {
   await writable.close();
 }
 
-async function exists(dir: DirHandle, path: string) {
-  try {
-    const parentPath = path.split("/").slice(0, -1).join("/");
-    const fileName = path.split("/").pop()!;
-    const parent = parentPath ? await ensureDir(dir, parentPath) : dir;
-    await parent.getFileHandle(fileName, { create: false });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function entryExists(dir: DirHandle, path: string) {
   try {
     const parts = path.split("/").filter(Boolean);
@@ -103,7 +91,8 @@ export default function ProjectScaffolder() {
 
     try {
       // 1) ask user for a folder
-      const dir = await (window as any).showDirectoryPicker({ mode: "readwrite" }) as DirHandle;
+      type Picker = { showDirectoryPicker: (opts: { mode: "read" | "readwrite" }) => Promise<DirHandle> };
+      const dir = await (window as unknown as Picker).showDirectoryPicker({ mode: "readwrite" });
       setDir(dir);
 
       // 2) check if already a LangGraph project
@@ -133,8 +122,8 @@ export default function ProjectScaffolder() {
       setMsg("Created LangGraph project scaffold ✔️");
       setDir(dir);
       router.push("/flow");
-    } catch (e: any) {
-      setMsg(`Error: ${e?.message || e}`);
+    } catch (e) {
+      setMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 

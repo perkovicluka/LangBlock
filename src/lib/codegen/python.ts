@@ -1,4 +1,5 @@
 import type { Edge, Node } from "@xyflow/react";
+type NodeDataShape = { kind?: string; label?: string; config?: Record<string, unknown> };
 
 /** Topologically sort a DAG (best-effort; cycles will just give partial order) */
 function topo(nodes: Node[], edges: Edge[]): string[] {
@@ -91,13 +92,13 @@ if __name__ == "__main__":
 
 export function generatePython(nodes: Node[], edges: Edge[]): string {
   // Map node id -> kind/config
-  const idTo = new Map<string, { kind: string; label: string; config: any }>();
+  const idTo = new Map<string, { kind: string; label: string; config: Record<string, unknown> }>();
   nodes.forEach(n => {
-    const d: any = n.data || {};
+    const d = (n.data || {}) as NodeDataShape;
     idTo.set(n.id, {
-      kind: (d.kind || d.type || "").toLowerCase(),
-      label: d.label || n.id,
-      config: d.config || {}
+      kind: String(d.kind || (n as unknown as { type?: string }).type || "").toLowerCase(),
+      label: String(d.label || n.id),
+      config: (d.config as Record<string, unknown>) || {},
     });
   });
 
